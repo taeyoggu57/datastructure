@@ -1,0 +1,389 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+/* ============================================================
+      STRUCTURES FOR ALL TYPES OF LINKED LISTS
+   ============================================================ */
+
+/* Singly Node */
+typedef struct NodeS {
+    int data;
+    struct NodeS *next;
+} NodeS;
+
+/* Doubly Node */
+typedef struct NodeD {
+    int data;
+    struct NodeD *prev, *next;
+} NodeD;
+
+/* Circular Singly Node */
+typedef struct NodeC {
+    int data;
+    struct NodeC *next;
+} NodeC;
+
+/* Circular Doubly Node */
+typedef struct NodeCD {
+    int data;
+    struct NodeCD *prev, *next;
+} NodeCD;
+
+/* ============================================================
+      UTILITY FUNCTIONS
+   ============================================================ */
+NodeS* newS(int v) {
+    NodeS* n = (NodeS*)malloc(sizeof(NodeS));
+    n->data = v;
+    n->next = NULL;
+    return n;
+}
+NodeD* newD(int v) {
+    NodeD* n = (NodeD*)malloc(sizeof(NodeD));
+    n->data = v;
+    n->next = n->prev = NULL;
+    return n;
+}
+NodeC* newC(int v) {
+    NodeC* n = (NodeC*)malloc(sizeof(NodeC));
+    n->data = v;
+    n->next = NULL;
+    return n;
+}
+NodeCD* newCD(int v) {
+    NodeCD* n = (NodeCD*)malloc(sizeof(NodeCD));
+    n->data = v;
+    n->prev = n->next = NULL;
+    return n;
+}
+
+/* ============================================================
+      DISPLAY FUNCTIONS (ASCII VISUALIZATION)
+   ============================================================ */
+void displayS(NodeS *h) {
+    while (h != NULL) {
+        printf("[ %d ]", h->data);
+        if (h->next) printf(" --> ");
+        h = h->next;
+    }
+    printf("\n");
+}
+
+void displayD(NodeD *h) {
+    while (h) {
+        printf("[ %d ]", h->data);
+        if (h->next) printf(" <-> ");
+        h = h->next;
+    }
+    printf("\n");
+}
+
+void displayC(NodeC *tail) {
+    if (!tail) { printf("[Empty]\n"); return; }
+    NodeC* head = tail->next;
+    NodeC* cur = head;
+
+    do {
+        printf("[ %d ]", cur->data);
+        cur = cur->next;
+        if (cur != head) printf(" --> ");
+    } while (cur != head);
+
+    printf(" --(circle)-->\n");
+}
+
+void displayCD(NodeCD *tail) {
+    if (!tail) { printf("[Empty]\n"); return; }
+    NodeCD* head = tail->next;
+    NodeCD* cur = head;
+    do {
+        printf("[ %d ]", cur->data);
+        cur = cur->next;
+        if (cur != head) printf(" <-> ");
+    } while (cur != head);
+    printf(" --(circular)-->\n");
+}
+
+/* ============================================================
+      INSERT / DELETE FOR ALL LIST TYPES
+   ============================================================ */
+
+/* ========== Singly ========== */
+void insertS(NodeS **h, int v) {
+    NodeS* n = newS(v);
+    if (*h == NULL) *h = n;
+    else {
+        NodeS* t = *h;
+        while (t->next) t = t->next;
+        t->next = n;
+    }
+}
+
+void deleteS(NodeS **h, int v) {
+    NodeS *cur = *h, *prev = NULL;
+    while (cur) {
+        if (cur->data == v) {
+            if (prev) prev->next = cur->next;
+            else *h = cur->next;
+            free(cur);
+            return;
+        }
+        prev = cur;
+        cur = cur->next;
+    }
+}
+
+/* ========== Doubly ========== */
+void insertD(NodeD **h, int v) {
+    NodeD* n = newD(v);
+    if (*h == NULL) *h = n;
+    else {
+        NodeD* t = *h;
+        while (t->next) t = t->next;
+        t->next = n;
+        n->prev = t;
+    }
+}
+
+void deleteD(NodeD **h, int v) {
+    NodeD* cur = *h;
+    while (cur) {
+        if (cur->data == v) {
+            if (cur->prev) cur->prev->next = cur->next;
+            else *h = cur->next;
+
+            if (cur->next) cur->next->prev = cur->prev;
+            free(cur);
+            return;
+        }
+        cur = cur->next;
+    }
+}
+
+/* ========== Circular Singly ========== */
+void insertC(NodeC **tail, int v) {
+    NodeC* n = newC(v);
+    if (*tail == NULL) {
+        *tail = n;
+        n->next = n;
+    } else {
+        n->next = (*tail)->next;
+        (*tail)->next = n;
+        *tail = n;
+    }
+}
+
+void deleteC(NodeC **tail, int v) {
+    if (!*tail) return;
+
+    NodeC *head = (*tail)->next, *cur = head, *prev = *tail;
+
+    do {
+        if (cur->data == v) {
+            prev->next = cur->next;
+
+            if (cur == *tail) *tail = prev;
+            if (cur == head) head = prev->next;
+
+            free(cur);
+
+            if (*tail == cur) *tail = NULL;
+            return;
+        }
+        prev = cur;
+        cur = cur->next;
+    } while (cur != head);
+}
+
+/* ========== Circular Doubly ========== */
+void insertCD(NodeCD **tail, int v) {
+    NodeCD* n = newCD(v);
+    if (*tail == NULL) {
+        *tail = n;
+        n->prev = n->next = n;
+    } else {
+        NodeCD* head = (*tail)->next;
+        n->next = head;
+        n->prev = *tail;
+        head->prev = n;
+        (*tail)->next = n;
+        *tail = n;
+    }
+}
+
+void deleteCD(NodeCD **tail, int v) {
+    if (!*tail) return;
+
+    NodeCD *head = (*tail)->next, *cur = head;
+
+    do {
+        if (cur->data == v) {
+            cur->prev->next = cur->next;
+            cur->next->prev = cur->prev;
+
+            if (cur == *tail) *tail = cur->prev;
+            if (cur == head) head = cur->next;
+            if (cur->next == cur) *tail = NULL;
+
+            free(cur);
+            return;
+        }
+        cur = cur->next;
+    } while (cur != head);
+}
+
+/* ============================================================
+      MENUS USING SWITCH–CASE
+   ============================================================ */
+
+void singlyMenu() {
+    NodeS *head = NULL;
+    int ch, val;
+
+    do {
+        printf("\n--- Singly Linked List Menu ---\n");
+        printf("1. Insert\n2. Delete\n3. Display\n4. Exit to Main Menu\n");
+        printf("Enter choice: ");
+        scanf("%d", &ch);
+
+        switch (ch) {
+        case 1:
+            printf("Enter value: ");
+            scanf("%d", &val);
+            insertS(&head, val);
+            break;
+
+        case 2:
+            printf("Enter value to delete: ");
+            scanf("%d", &val);
+            deleteS(&head, val);
+            break;
+
+        case 3:
+            displayS(head);
+            break;
+        }
+    } while (ch != 4);
+}
+
+void doublyMenu() {
+    NodeD *head = NULL;
+    int ch, val;
+
+    do {
+        printf("\n--- Doubly Linked List Menu ---\n");
+        printf("1. Insert\n2. Delete\n3. Display\n4. Exit to Main Menu\n");
+        printf("Enter choice: ");
+        scanf("%d", &ch);
+
+        switch (ch) {
+        case 1:
+            printf("Enter value: ");
+            scanf("%d", &val);
+            insertD(&head, val);
+            break;
+
+        case 2:
+            printf("Enter value to delete: ");
+            scanf("%d", &val);
+            deleteD(&head, val);
+            break;
+
+        case 3:
+            displayD(head);
+            break;
+        }
+    } while (ch != 4);
+}
+
+void circularSinglyMenu() {
+    NodeC *tail = NULL;
+    int ch, val;
+
+    do {
+        printf("\n--- Circular Singly Linked List Menu ---\n");
+        printf("1. Insert\n2. Delete\n3. Display\n4. Exit to Main Menu\n");
+        printf("Enter choice: ");
+        scanf("%d", &ch);
+
+        switch (ch) {
+        case 1:
+            printf("Enter value: ");
+            scanf("%d", &val);
+            insertC(&tail, val);
+            break;
+
+        case 2:
+            printf("Enter value to delete: ");
+            scanf("%d", &val);
+            deleteC(&tail, val);
+            break;
+
+        case 3:
+            displayC(tail);
+            break;
+        }
+    } while (ch != 4);
+}
+
+void circularDoublyMenu() {
+    NodeCD *tail = NULL;
+    int ch, val;
+
+    do {
+        printf("\n--- Circular Doubly Linked List Menu ---\n");
+        printf("1. Insert\n2. Delete\n3. Display\n4. Exit to Main Menu\n");
+        printf("Enter choice: ");
+        scanf("%d", &ch);
+
+        switch (ch) {
+        case 1:
+            printf("Enter value: ");
+            scanf("%d", &val);
+            insertCD(&tail, val);
+            break;
+
+        case 2:
+            printf("Enter value to delete: ");
+            scanf("%d", &val);
+            deleteCD(&tail, val);
+            break;
+
+        case 3:
+            displayCD(tail);
+            break;
+        }
+    } while (ch != 4);
+}
+
+/* ============================================================
+      MAIN MENU (SWITCH–CASE)
+   ============================================================ */
+int main() {
+    int choice;
+
+    do {
+        printf("\n==============================\n");
+        printf("   LINKED LIST VISUALIZER\n");
+        printf("==============================\n");
+        printf("1. Singly Linked List\n");
+        printf("2. Doubly Linked List\n");
+        printf("3. Circular Singly Linked List\n");
+        printf("4. Circular Doubly Linked List\n");
+        printf("5. Exit\n");
+
+        printf("Enter choice: ");
+        scanf("%d", &choice);
+
+        switch (choice) {
+        case 1: singlyMenu(); break;
+        case 2: doublyMenu(); break;
+        case 3: circularSinglyMenu(); break;
+        case 4: circularDoublyMenu(); break;
+        case 5: printf("Exiting...\n"); break;
+        default: printf("Invalid Choice!\n");
+        }
+    } while (choice != 5);
+
+    return 0;
+}   
